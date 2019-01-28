@@ -18,6 +18,10 @@ MapEdit requires Python 3. All other required packages should already be bundled
 
 MapEdit's area selection only operates on whole mapblocks. A single mapblock is a 16x16x16 node area of the map, similar to Minecraft's chunks. The lower southwestern corner of a mapblock is always at coordinates which are evenly divisible by 16, e.g. (32, 64, -48) or the like.
 
+**A note about parameters**
+
+All string-like parameters can safely be surrounded with quotes if they happen to contain spaces.
+
 **General usage**
 
 `python mapedit.py [-h] -f <file> [-s <file>] [--p1 x y z] [--p2 x y z] [--inverse] [--silencewarnings] <command>`
