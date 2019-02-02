@@ -46,8 +46,6 @@ def clone_blocks(cursor, args):
                 "INSERT OR REPLACE INTO blocks (pos, data) VALUES (?, ?)",
                 (newPos, data))
 
-    progress.print_bar(len(list), len(list))
-
 #
 # deleteblocks command
 #
@@ -61,8 +59,6 @@ def delete_blocks(cursor, args):
     for i, pos in enumerate(list):
         progress.print_bar(i, len(list))
         cursor.execute("DELETE FROM blocks WHERE pos = ?", (pos,))
-
-    progress.print_bar(len(list), len(list))
 
 #
 # fillblocks command
@@ -90,8 +86,6 @@ def fill_blocks(cursor, args):
         data = parsedData.serialize()
         cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?", (data, pos))
 
-    progress.print_bar(len(list), len(list))
-
 #
 # overlayblocks command
 #
@@ -110,8 +104,6 @@ def overlay_blocks(cursor, sCursor, args):
         cursor.execute(
                 "INSERT OR REPLACE INTO blocks (pos, data) VALUES (?, ?)",
                 (pos, data))
-
-    progress.print_bar(len(list), len(list))
 
 #
 # replacenodes command
@@ -181,8 +173,6 @@ def replace_nodes(cursor, args):
 
         cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?", (data, pos))
 
-    progress.print_bar(len(list), len(list))
-
 #
 # setparam2 command
 #
@@ -219,8 +209,6 @@ def set_param2(cursor, args):
         data = parsedData.serialize()
         cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?", (data, pos))
 
-    progress.print_bar(len(list), len(list))
-
 #
 # deletemeta command
 #
@@ -252,8 +240,6 @@ def delete_meta(cursor, args):
         parsedData.serialize_metadata(metaList)
         data = parsedData.serialize()
         cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?", (data, pos))
-
-    progress.print_bar(len(list), len(list))
 
 #
 # setmetavar command
@@ -295,8 +281,6 @@ def set_meta_var(cursor, args):
         parsedData.serialize_metadata(metaList)
         data = parsedData.serialize()
         cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?", (data, pos))
-
-    progress.print_bar(len(list), len(list))
 
 #
 # replaceininv command
@@ -350,8 +334,6 @@ def replace_in_inv(cursor, args):
         data = parsedData.serialize()
         cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?", (data, pos))
 
-    progress.print_bar(len(list), len(list))
-
 #
 # deletetimers
 #
@@ -384,8 +366,6 @@ def delete_timers(cursor, args):
         parsedData.serialize_node_timers(timers)
         data = parsedData.serialize()
         cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?", (data, pos))
-
-    progress.print_bar(len(list), len(list))
 
 #
 # deleteobjects
@@ -430,5 +410,3 @@ def delete_objects(cursor, args):
         parsedData.serialize_static_objects(objects)
         data = parsedData.serialize()
         cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?", (data, pos))
-
-    progress.print_bar(len(list), len(list))

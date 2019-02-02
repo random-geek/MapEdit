@@ -6,10 +6,17 @@ class Progress:
     """Prints a progress bar with time elapsed."""
 
     def __init__(self):
+        self.last_total = 0
         self.start_time = time.time()
 
 
+    def __del__(self):
+        self.print_bar(self.last_total, self.last_total)
+
+
     def print_bar(self, completed, total):
+        self.last_total = total
+
         if completed % 100 == 0 or completed == total:
             if total > 0:
                 percent = round(completed / total * 100, 1)
