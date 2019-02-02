@@ -1,6 +1,5 @@
-import sys
 import argparse
-import sqlite3
+import sys
 import re
 from lib import commands, helpers
 
@@ -79,13 +78,13 @@ parser_deletemeta = subparsers.add_parser("deletemeta",
         help="Delete metadata of all of a certain type of node.")
 parser_deletemeta.set_defaults(func=commands.delete_meta)
 
-parser_replaceininv = subparsers.add_parser("replaceininv",
-        help="Replace one item with another in inventories certain nodes.")
-parser_replaceininv.set_defaults(func=commands.replace_in_inv)
-
 parser_setmetavar = subparsers.add_parser("setmetavar",
         help="Set a value in the metadata of all of a certain type of node.")
 parser_setmetavar.set_defaults(func=commands.set_meta_var)
+
+parser_replaceininv = subparsers.add_parser("replaceininv",
+        help="Replace one item with another in inventories certain nodes.")
+parser_replaceininv.set_defaults(func=commands.replace_in_inv)
 
 parser_deletetimers = subparsers.add_parser("deletetimers",
         help="Delete node timers of all of a certain type of node.")
@@ -153,18 +152,10 @@ for param in ("searchname", "replacename", "searchitem", "replaceitem"):
 
         if (nameFormat.match(value) == None and value != "air" and not
                 (param == "replaceitem" and value == "Empty")):
-            helpers.throw_error("Invalid node name.")
+            helpers.throw_error("Invalid node name ({:s}).".format(param))
 
-helpers.verify_file(args.f, "Primary map file does not exist.")
-
-db = sqlite3.connect(args.f)
-cursor = db.cursor()
-
-# Test for database validity.
-try:
-    cursor.execute("SELECT * FROM blocks")
-except sqlite3.DatabaseError:
-    helpers.throw_error("Primary map file is not a valid map database.")
+# Attempt to open database.
+db = helpers.DatabaseHandler(args.f, "primary")
 
 if not args.silencewarnings and input(
         "WARNING: Using this tool can potentially cause permanent\n"
@@ -175,31 +166,17 @@ if not args.silencewarnings and input(
     sys.exit()
 
 if args.command == "overlayblocks":
-    if not args.s:
-        helpers.throw_error("Command requires a secondary map file.")
-
     if args.s == args.f:
         helpers.throw_error("Primary and secondary map files are the same.")
 
-    helpers.verify_file(args.s, "Secondary map file does not exist.")
+    sDb = helpers.DatabaseHandler(args.s, "secondary")
 
-    sDb = sqlite3.connect(args.s)
-    sCursor = sDb.cursor()
-
-    # Test for database validity.
-    try:
-        sCursor.execute("SELECT * FROM blocks")
-    except sqlite3.DatabaseError:
-        helpers.throw_error("Secondary map file is not a valid map database.")
-
-    args.func(cursor, sCursor, args)
+    args.func(db, sDb, args)
     sDb.close()
 else:
-    args.func(cursor, args)
+    args.func(db, args)
 
 print("\nSaving file...")
-
-db.commit()
-db.close()
+db.close(commit=True)
 
 print("Done.")

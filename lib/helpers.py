@@ -1,6 +1,55 @@
-import sys
+import sqlite3
 import math
 import time
+import sys
+
+class DatabaseHandler:
+    """Handles the Sqlite database and provides useful functions."""
+
+    def __init__(self, filename, type):
+        if not filename:
+            throw_error("Please specify a map file ({:s}).".format(type))
+
+        try:
+            tempFile = open(filename, 'r')
+            tempFile.close()
+        except:
+            throw_error("Map file does not exist ({:s}).".format(type))
+
+        self.database = sqlite3.connect(filename)
+        self.cursor = self.database.cursor()
+
+        try:
+            self.cursor.execute("SELECT * FROM blocks")
+        except sqlite3.DatabaseError:
+            throw_error("File is not a valid map file ({:s}).".format(type))
+
+
+    def get_block(self, pos):
+        self.cursor.execute("SELECT data FROM blocks WHERE pos = ?", (pos,))
+        return self.cursor.fetchone()[0]
+
+
+    def delete_block(self, pos):
+        self.cursor.execute("DELETE FROM blocks WHERE pos = ?", (pos,))
+
+
+    def set_block(self, pos, data, force = False):
+        if force:
+            self.cursor.execute(
+                    "INSERT OR REPLACE INTO blocks (pos, data) VALUES (?, ?)",
+                    (pos, data))
+        else:
+            self.cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?",
+                    (data, pos))
+
+
+    def close(self, commit = False):
+        if commit:
+            self.database.commit()
+
+        self.database.close()
+
 
 class Progress:
     """Prints a progress bar with time elapsed."""
@@ -101,12 +150,12 @@ def is_in_range(num, area):
     return True
 
 
-def get_mapblocks(cursor, area = None, name = None, inverse = False):
+def get_mapblocks(database, area = None, name = None, inverse = False):
     batch = []
     list = []
 
     while True:
-        batch = cursor.fetchmany(1000)
+        batch = database.cursor.fetchmany(1000)
         # Exit if we run out of database entries.
         if len(batch) == 0:
             break

@@ -1,4 +1,3 @@
-import sqlite3
 import struct
 import re
 from lib import mapblock, blockfuncs, helpers
@@ -7,12 +6,11 @@ from lib import mapblock, blockfuncs, helpers
 # cloneblocks command
 #
 
-def clone_blocks(cursor, args):
+def clone_blocks(database, args):
     p1, p2 = helpers.args_to_mapblocks(args.p1, args.p2)
     offset = [n >> 4 for n in args.offset]
     progress = helpers.Progress()
-    list = helpers.get_mapblocks(cursor,
-            area=(p1, p2), inverse=args.inverse)
+    list = helpers.get_mapblocks(database, area=(p1, p2), inverse=args.inverse)
 
     # Sort the list to avoid overlapping of blocks when cloning.
     if offset[0] != 0: # Sort by x-value.
@@ -38,78 +36,66 @@ def clone_blocks(cursor, args):
             continue
         # Rehash the position.
         newPos = helpers.hash_pos(posVec)
-
-        cursor.execute("SELECT data FROM blocks WHERE pos = ?", (pos,))
-        data = cursor.fetchone()[0]
-        # Update mapblock or create a new one in new location.
-        cursor.execute(
-                "INSERT OR REPLACE INTO blocks (pos, data) VALUES (?, ?)",
-                (newPos, data))
+        # Get the mapblock and move it to the new location.
+        data = database.get_block(pos)
+        database.set_block(newPos, data, force=True)
 
 #
 # deleteblocks command
 #
 
-def delete_blocks(cursor, args):
+def delete_blocks(database, args):
     p1, p2 = helpers.args_to_mapblocks(args.p1, args.p2)
     progress = helpers.Progress()
-    list = helpers.get_mapblocks(cursor,
-            area=(p1, p2), inverse=args.inverse)
+    list = helpers.get_mapblocks(cursor, area=(p1, p2), inverse=args.inverse)
 
     for i, pos in enumerate(list):
         progress.print_bar(i, len(list))
-        cursor.execute("DELETE FROM blocks WHERE pos = ?", (pos,))
+        database.delete_block(pos)
 
 #
 # fillblocks command
 #
 
-def fill_blocks(cursor, args):
+def fill_blocks(database, args):
     p1, p2 = helpers.args_to_mapblocks(args.p1, args.p2)
     name = bytes(args.replacename, "utf-8")
     progress = helpers.Progress()
-    list = helpers.get_mapblocks(cursor,
-            area=(p1, p2), inverse=args.inverse)
+    list = helpers.get_mapblocks(database, area=(p1, p2), inverse=args.inverse)
 
     for i, pos in enumerate(list):
         progress.print_bar(i, len(list))
-        cursor.execute("SELECT data FROM blocks WHERE pos = ?", (pos,))
-        data = cursor.fetchone()[0]
-        parsedData = mapblock.MapBlock(data)
+        parsedData = mapblock.MapBlock(database.get_block(pos))
         # Fill area with one type of node and delete everything else.
         parsedData.node_data = bytes(4096 * (parsedData.content_width +
                 parsedData.params_width))
-        parsedData.serialize_nimap([0], [name])
+        parsedData.serialize_nimap([name])
         parsedData.serialize_metadata([])
         parsedData.serialize_node_timers([])
 
-        data = parsedData.serialize()
-        cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?", (data, pos))
+        database.set_block(pos, parsedData.serialize())
 
 #
 # overlayblocks command
 #
 
-def overlay_blocks(cursor, sCursor, args):
+def overlay_blocks(database, sDatabase, args):
     p1, p2 = helpers.args_to_mapblocks(args.p1, args.p2)
     progress = helpers.Progress()
-    list = helpers.get_mapblocks(sCursor,
+    list = helpers.get_mapblocks(sDatabase,
             area=(p1, p2), inverse=args.inverse)
 
     for i, pos in enumerate(list):
         progress.print_bar(i, len(list))
-        sCursor.execute("SELECT data FROM blocks WHERE pos = ?", (pos,))
-        data = sCursor.fetchone()[0]
+        data = sDatabase.get_block(pos)
         # Update mapblock or create a new one in primary file.
-        cursor.execute(
-                "INSERT OR REPLACE INTO blocks (pos, data) VALUES (?, ?)",
-                (pos, data))
+        database.set_block(pos, data, force=True)
 
 #
 # replacenodes command
 #
 
-def replace_nodes(cursor, args):
+def replace_nodes(database, args):
     searchName = bytes(args.searchname, "utf-8")
     replaceName = bytes(args.replacename, "utf-8")
 
@@ -125,14 +111,11 @@ def replace_nodes(cursor, args):
         return
 
     progress = helpers.Progress()
-    list = helpers.get_mapblocks(cursor,
-            name=searchName)
+    list = helpers.get_mapblocks(database, name=searchName)
 
     for i, pos in enumerate(list):
         progress.print_bar(i, len(list))
-        cursor.execute("SELECT data FROM blocks WHERE pos = ?", (pos,))
-        data = cursor.fetchone()[0]
-        parsedData = mapblock.MapBlock(data)
+        parsedData = mapblock.MapBlock(database.get_block(pos))
         nimap = parsedData.deserialize_nimap()
 
         if searchName in nimap:
@@ -169,28 +152,23 @@ def replace_nodes(cursor, args):
                 nimap[nimap.index(searchName)] = replaceName
 
             parsedData.serialize_nimap(nimap)
-            data = parsedData.serialize()
-
-        cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?", (data, pos))
+            database.set_block(pos, parsedData.serialize())
 
 #
 # setparam2 command
 #
 
-def set_param2(cursor, args):
+def set_param2(database, args):
     if args.value < 0 or args.value > 255:
         helpers.throw_error("ERROR: param2 value must be between 0 and 255.")
 
     searchName = bytes(args.searchname, "utf-8")
     progress = helpers.Progress()
-    list = helpers.get_mapblocks(cursor,
-            name=searchName)
+    list = helpers.get_mapblocks(database, name=searchName)
 
     for i, pos in enumerate(list):
         progress.print_bar(i, len(list))
-        cursor.execute("SELECT data FROM blocks WHERE pos = ?", (pos,))
-        data = cursor.fetchone()[0]
-        parsedData = mapblock.MapBlock(data)
+        parsedData = mapblock.MapBlock(database.get_block(pos))
         nimap = parsedData.deserialize_nimap()
 
         if searchName not in nimap:
@@ -200,30 +178,25 @@ def set_param2(cursor, args):
         bulkParam2 = bytearray(parsedData.node_data[12288:])
 
         for a in range(4096):
-            if parsedData.node_data[i * 2:(i + 1) * 2] == nodeId:
+            if parsedData.node_data[a * 2:(a + 1) * 2] == nodeId:
                 bulkParam2[a] = args.value
 
         parsedData.node_data = (parsedData.node_data[:12288] +
                 bytes(bulkParam2))
-
-        data = parsedData.serialize()
-        cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?", (data, pos))
+        database.set_block(pos, parsedData.serialize())
 
 #
 # deletemeta command
 #
 
-def delete_meta(cursor, args):
+def delete_meta(database, args):
     searchName = bytes(args.searchname, "utf-8")
     progress = helpers.Progress()
-    list = helpers.get_mapblocks(cursor,
-            name=searchName)
+    list = helpers.get_mapblocks(database, name=searchName)
 
     for i, pos in enumerate(list):
         progress.print_bar(i, len(list))
-        cursor.execute("SELECT data FROM blocks WHERE pos = ?", (pos,))
-        data = cursor.fetchone()[0]
-        parsedData = mapblock.MapBlock(data)
+        parsedData = mapblock.MapBlock(database.get_block(pos))
         nimap = parsedData.deserialize_nimap()
 
         if searchName not in nimap:
@@ -238,26 +211,22 @@ def delete_meta(cursor, args):
                 del metaList[a]
 
         parsedData.serialize_metadata(metaList)
-        data = parsedData.serialize()
-        cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?", (data, pos))
+        database.set_block(pos, parsedData.serialize())
 
 #
 # setmetavar command
 #
 
-def set_meta_var(cursor, args):
+def set_meta_var(database, args):
     searchName = bytes(args.searchname, "utf-8")
     key = bytes(args.key, "utf-8")
     value = bytes(args.value, "utf-8")
     progress = helpers.Progress()
-    list = helpers.get_mapblocks(cursor,
-            name=searchName)
+    list = helpers.get_mapblocks(database, name=searchName)
 
     for i, pos in enumerate(list):
         progress.print_bar(i, len(list))
-        cursor.execute("SELECT data FROM blocks WHERE pos = ?", (pos,))
-        data = cursor.fetchone()[0]
-        parsedData = mapblock.MapBlock(data)
+        parsedData = mapblock.MapBlock(database.get_block(pos))
         nimap = parsedData.deserialize_nimap()
 
         if searchName not in nimap:
@@ -279,26 +248,22 @@ def set_meta_var(cursor, args):
                         parsedData.metadata_version)
 
         parsedData.serialize_metadata(metaList)
-        data = parsedData.serialize()
-        cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?", (data, pos))
+        database.set_block(pos, parsedData.serialize())
 
 #
 # replaceininv command
 #
 
-def replace_in_inv(cursor, args):
+def replace_in_inv(database, args):
     searchName = bytes(args.searchname, "utf-8")
     searchItem = bytes(args.searchitem, "utf-8")
     replaceItem = bytes(args.replaceitem, "utf-8")
     progress = helpers.Progress()
-    list = helpers.get_mapblocks(cursor,
-            name=searchName)
+    list = helpers.get_mapblocks(database, name=searchName)
 
     for i, pos in enumerate(list):
         progress.print_bar(i, len(list))
-        cursor.execute("SELECT data FROM blocks WHERE pos = ?", (pos,))
-        data = cursor.fetchone()[0]
-        parsedData = mapblock.MapBlock(data)
+        parsedData = mapblock.MapBlock(database.get_block(pos))
         nimap = parsedData.deserialize_nimap()
 
         if searchName not in nimap:
@@ -328,27 +293,24 @@ def replace_in_inv(cursor, args):
 
                     invList[b] = b" ".join(splitItem)
 
+                # Re-join node inventory.
                 metaList[a]["inv"] = b"\n".join(invList)
 
         parsedData.serialize_metadata(metaList)
-        data = parsedData.serialize()
-        cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?", (data, pos))
+        database.set_block(pos, parsedData.serialize())
 
 #
 # deletetimers
 #
 
-def delete_timers(cursor, args):
+def delete_timers(database, args):
     searchName = bytes(args.searchname, "utf-8")
     progress = helpers.Progress()
-    list = helpers.get_mapblocks(cursor,
-            name=searchName)
+    list = helpers.get_mapblocks(database, name=searchName)
 
     for i, pos in enumerate(list):
         progress.print_bar(i, len(list))
-        cursor.execute("SELECT data FROM blocks WHERE pos = ?", (pos,))
-        data = cursor.fetchone()[0]
-        parsedData = mapblock.MapBlock(data)
+        parsedData = mapblock.MapBlock(database.get_block(pos))
         nimap = parsedData.deserialize_nimap()
 
         if searchName not in nimap:
@@ -364,30 +326,26 @@ def delete_timers(cursor, args):
                 del timers[a]
 
         parsedData.serialize_node_timers(timers)
-        data = parsedData.serialize()
-        cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?", (data, pos))
+        database.set_block(pos, parsedData.serialize())
 
 #
 # deleteobjects
 #
 
-def delete_objects(cursor, args):
+def delete_objects(database, args):
     if args.item:
         searchName = b"__builtin:item"
     else:
         searchName = bytes(args.searchname, "utf-8")
 
     progress = helpers.Progress()
-    list = helpers.get_mapblocks(cursor,
-            name=searchName)
+    list = helpers.get_mapblocks(database, name=searchName)
     itemstringFormat = re.compile(
             b"\[\"itemstring\"\] = \"(?P<name>[a-zA-Z0-9_:]+)")
 
     for i, pos in enumerate(list):
         progress.print_bar(i, len(list))
-        cursor.execute("SELECT data FROM blocks WHERE pos = ?", (pos,))
-        data = cursor.fetchone()[0]
-        parsedData = mapblock.MapBlock(data)
+        parsedData = mapblock.MapBlock(database.get_block(pos))
 
         if parsedData.static_object_count == 0:
             continue
@@ -408,5 +366,4 @@ def delete_objects(cursor, args):
                     del objects[a]
 
         parsedData.serialize_static_objects(objects)
-        data = parsedData.serialize()
-        cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?", (data, pos))
+        database.set_block(pos, parsedData.serialize())
