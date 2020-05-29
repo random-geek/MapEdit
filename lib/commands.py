@@ -47,7 +47,7 @@ def clone_blocks(database, args):
 def delete_blocks(database, args):
     p1, p2 = helpers.args_to_mapblocks(args.p1, args.p2)
     progress = helpers.Progress()
-    list = helpers.get_mapblocks(cursor, area=(p1, p2), inverse=args.inverse)
+    list = helpers.get_mapblocks(database, area=(p1, p2), inverse=args.inverse)
 
     for i, pos in enumerate(list):
         progress.print_bar(i, len(list))
