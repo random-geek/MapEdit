@@ -1,8 +1,8 @@
-#!/usr/bin/env python3
 import argparse
-from lib import commands
-# TODO: Fix file structure, add setuptools?
+from . import commands, __version__
 
+
+# Define arguments.
 ARGUMENT_DEFS = {
     "p1": {
         "always_opt": True,
@@ -116,48 +116,53 @@ ARGUMENT_DEFS = {
     },
 }
 
-# Initialize parsers.
 
-parser = argparse.ArgumentParser(
-        description="Edit Minetest map database files.",
-        epilog="Run `mapedit.py <command> -h` for command-specific help.")
+def run_cmdline():
+    """Run MapEdit as a command-line script."""
 
-parser.add_argument("-f",
-        required=True,
-        dest="file",
-        metavar="<file>",
-        help="Path to primary map file")
-parser.add_argument("--no-warnings",
-        dest="no_warnings",
-        action="store_true",
-        help="Don't show warnings or confirmation prompts.")
+    # Initialize parsers.
+    parser = argparse.ArgumentParser(
+            description="Edit Minetest map database files.",
+            epilog="Run `mapedit.py <command> -h` for command-specific help.")
 
-subparsers = parser.add_subparsers(dest="command", required=True,
-        help="Command (see README.md for more information)")
+    parser.add_argument("-f",
+            required=True,
+            dest="file",
+            metavar="<file>",
+            help="Path to primary map file")
+    parser.add_argument("--no-warnings",
+            dest="no_warnings",
+            action="store_true",
+            help="Don't show warnings or confirmation prompts.")
+    parser.add_argument("--version",
+            action="version",
+            version="%(prog)s " + __version__)
 
-for cmdName, cmdDef in commands.COMMAND_DEFS.items():
-    subparser = subparsers.add_parser(cmdName, help=cmdDef["help"])
+    subparsers = parser.add_subparsers(dest="command", required=True,
+            help="Command (see README.md for more information)")
 
-    for arg, required in cmdDef["args"].items():
-        argsToAdd = ("p1", "p2") if arg == "area" else (arg,)
+    for cmdName, cmdDef in commands.COMMAND_DEFS.items():
+        subparser = subparsers.add_parser(cmdName, help=cmdDef["help"])
 
-        for argToAdd in argsToAdd:
-            argDef = ARGUMENT_DEFS[argToAdd]
+        for arg, required in cmdDef["args"].items():
+            argsToAdd = ("p1", "p2") if arg == "area" else (arg,)
 
-            if "always_opt" in argDef and argDef["always_opt"]:
-                # Always use an option flag, even if not required.
-                subparser.add_argument("--" + argToAdd, required=required,
-                        **argDef["params"])
-            else:
-                if required:
-                    subparser.add_argument(argToAdd, **argDef["params"])
-                else:
-                    subparser.add_argument("--" + argToAdd, required=False,
+            for argToAdd in argsToAdd:
+                argDef = ARGUMENT_DEFS[argToAdd]
+
+                if "always_opt" in argDef and argDef["always_opt"]:
+                    # Always use an option flag, even if not required.
+                    subparser.add_argument("--" + argToAdd, required=required,
                             **argDef["params"])
+                else:
+                    if required:
+                        subparser.add_argument(argToAdd, **argDef["params"])
+                    else:
+                        subparser.add_argument("--" + argToAdd, required=False,
+                                **argDef["params"])
 
-# Handle the actual command.
-
-args = commands.MapEditArgs()
-parser.parse_args(namespace=args)
-inst = commands.MapEditInstance()
-inst.run(args)
+    # Handle the actual command.
+    args = commands.MapEditArgs()
+    parser.parse_args(namespace=args)
+    inst = commands.MapEditInstance()
+    inst.run(args)

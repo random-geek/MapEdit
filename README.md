@@ -8,10 +8,21 @@ MapEdit is a command-line tool written in Python for relatively fast manipulatio
 
 MapEdit is currently in the beta stage, and like any code, it may have bugs. Use it at your own risk.
 
-## Requirements
+## Installation
 
-- Python 3 (If you don't already have it, download it from [python.org](https://www.python.org).)
-- NumPy, which can be installed with `pip install numpy`.
+MapEdit required Python 3.8 or higher. NumPy will also be installed if it isn't already.
+
+First, download MapEdit from [here](https://github.com/random-geek/MapEdit/archive/master.zip) or by using `git clone`.
+If you downloaded the zip file, unzip it into a new directory.
+
+Then, open a terminal/command prompt/PowerShell window in the MapEdit directory and run:
+
+```
+pip install --upgrade setuptools
+python setup.py install
+```
+
+This will install MapEdit as a script/executable which can be run from anywhere.
 
 ## Usage
 
@@ -24,7 +35,7 @@ Most commands require mapblocks to be already generated to work. This can be ach
 
 #### General usage
 
-`python mapedit.py [-h] -f <file> [--no-warnings] <command>`
+`mapedit [-h] -f <file> [--no-warnings] <command>`
 
 #### Arguments
 
