@@ -12,17 +12,17 @@ MapEdit is currently in the beta stage, and like any code, it may have bugs. Use
 
 MapEdit required Python 3.8 or higher. NumPy will also be installed if it isn't already.
 
-First, download MapEdit from [here](https://github.com/random-geek/MapEdit/archive/master.zip) or by using `git clone`.
-If you downloaded the zip file, unzip it into a new directory.
-
-Then, open a terminal/command prompt/PowerShell window in the MapEdit directory and run:
+To install, run:
 
 ```
 pip install --upgrade setuptools
-python setup.py install
+pip install https://github.com/random-geek/MapEdit/archive/master.zip
 ```
 
 This will install MapEdit as a script/executable which can be run from anywhere.
+This is the easiest way to install, as it will download the latest code directly from the repository.
+
+If you wish to install from a downloaded copy instead, install `setuptools` as usual, then run `python setup.py install` in the project directory.
 
 ## Usage
 
@@ -67,7 +67,7 @@ Arguments:
 
 - **`--p1, --p2`**: Area to copy from.
 - **`--offset`**: Offset to shift the area by. For example, to copy an area 50 nodes upward (positive Y direction), use `--offset 0 50 0`.
-- **`--blockmode`**: If present, only blocks *fully* inside the area will be cloned, and `offset` will be rounded to the nearest multiple of 16. In this mode, mapblocks may also be copied into non-generated areas. May be signifigantly faster for large areas.
+- **`--blockmode`**: If present, only blocks *fully* inside the area will be cloned, and `offset` will be rounded to the nearest multiple of 16. In this mode, mapblocks may also be copied into non-generated areas. May be significantly faster for large areas.
 
 ### `overlay`
 
@@ -81,7 +81,7 @@ Arguments:
 - **`--p1, --p2`**: Area to copy from. If not specified, MapEdit will try to copy everything from the input map file.
 - **`--invert`**: If present, copy everything *outside* the given area.
 - **`--offset`**: Offset to move nodes by when copying; default is no offset. This currently cannot be used with an inverted selection.
-- **`--blockmode`**: If present, copy whole mapblocks instead of node regions. Only blocks fully inside or fully outside the given area will be copied, depending on whether `--invert` is used. In addition, `offset` will be rounded to the nearest multiple of 16. May be signifigantly faster for large areas.
+- **`--blockmode`**: If present, copy whole mapblocks instead of node regions. Only blocks fully inside or fully outside the given area will be copied, depending on whether `--invert` is used. In addition, `offset` will be rounded to the nearest multiple of 16. May be significantly faster for large areas.
 
 ### `deleteblocks`
 
@@ -108,7 +108,7 @@ Arguments:
 - **`replacenode`**: Name of node to fill the area with.
 - **`--p1, --p2`**: Area to fill.
 - **`--invert`**: Fill everything *outside* the given area.
-- **`--blockmode`**: Fill whole mapblocks instead of node regions. Only mapblocks fully inside the region (or fully outside, if `--invert` is used) will be filled. This option currenly has little effect.
+- **`--blockmode`**: Fill whole mapblocks instead of node regions. Only mapblocks fully inside the region (or fully outside, if `--invert` is used) will be filled. This option currently has little effect.
 
 ### `replacenodes`
 
