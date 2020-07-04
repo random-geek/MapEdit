@@ -31,7 +31,7 @@ If you wish to install from a downloaded copy instead, install `setuptools` as u
 Minetest stores and transfers map data in *mapblocks*, which are similar to Minecraft's *chunks*. A single mapblock is a cubical, 16x16x16 node area of the map. The lower southwestern corner (-X, -Y, -Z) of a mapblock is always at coordinates divisible by 16, e.g. (0, 16, -48) or the like.
 
 Mapblocks are stored in a *map database*, usually `map.sqlite`.
-Most commands require mapblocks to be already generated to work. This can be acheived by either exploring the area in-game, or by using Minetest's built-in `/emergeblocks` command.
+Most commands require mapblocks to be already generated to work. This can be achieved by either exploring the area in-game, or by using Minetest's built-in `/emergeblocks` command.
 
 #### General usage
 

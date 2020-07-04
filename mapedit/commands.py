@@ -781,7 +781,7 @@ class MapEditInstance:
     """Verifies certain input and handles the execution of commands."""
 
     STANDARD_WARNING = (
-        "This tool can permanantly damage your Minetest world.\n"
+        "This tool can permanently damage your Minetest world.\n"
         "Always EXIT Minetest and BACK UP the map database before use.")
 
     def __init__(self):
