@@ -158,6 +158,9 @@ class DatabaseHandler:
         except sqlite3.DatabaseError:
             raise
 
+    def is_modified(self):
+        return self.database.in_transaction
+
     def get_block(self, key):
         self.cursor.execute("SELECT data FROM blocks WHERE pos = ?", (key,))
         if data := self.cursor.fetchone():
@@ -181,13 +184,15 @@ class DatabaseHandler:
             self.cursor.execute("UPDATE blocks SET data = ? WHERE pos = ?",
                     (data, key))
 
-    def is_modified(self):
-        return self.database.in_transaction
+    def vacuum(self):
+        self.commit() # In case the database has been modified.
+        self.cursor.execute("VACUUM")
 
-    def close(self, commit=False):
-        if self.is_modified() and commit:
+    def commit(self):
+        if self.is_modified():
             self.database.commit()
 
+    def close(self):
         self.database.close()
 
 

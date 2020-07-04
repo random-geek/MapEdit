@@ -16,13 +16,15 @@ To install, run:
 
 ```
 pip install --upgrade setuptools
-pip install https://github.com/random-geek/MapEdit/archive/master.zip
+pip install --upgrade https://github.com/random-geek/MapEdit/archive/master.zip
 ```
 
 This will install MapEdit as a script/executable which can be run from anywhere.
-This is the easiest way to install, as it will download the latest code directly from the repository.
 
+This is the easiest way to install, as it will download the latest code directly from the repository.
 If you wish to install from a downloaded copy instead, install `setuptools` as usual, then run `python setup.py install` in the project directory.
+
+You may also be prompted to add a directory to PATH. If so, follow instructions for your operating system on how to do this.
 
 ## Usage
 
@@ -205,6 +207,18 @@ Arguments:
 - **`--items`**: Search for only item entities (dropped items). `searchobj` determines the item name, if specified.
 - **`--p1, --p2`**: Area in which to delete objects. If not specified, objects will be deleted across the entire map.
 - **`--invert`**: Only delete objects *outside* the given area.
+
+### `vacuum`
+
+**Usage:** `vacuum`
+
+Vacuums the database. This reduces the size of the database, but may take a long time.
+
+All this does is perform an SQLite `VACUUM` command. This shrinks and optimizes the database by efficiently "repacking" all mapblocks.
+No map data is changed or deleted.
+
+**Note:** Because data is copied into another file, this command could require as much free disk space as is already occupied by the map.
+For example, if your database is 10 GB, make sure you have **at least 10 GB** of free space!
 
 ## Acknowledgments
 

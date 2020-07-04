@@ -545,7 +545,7 @@ def replace_in_inv(inst, args):
             inst.db.set_block(key, block.serialize())
 
 #
-# deletetimers
+# deletetimers command
 #
 
 def delete_timers(inst, args):
@@ -591,7 +591,7 @@ def delete_timers(inst, args):
             inst.db.set_block(key, block.serialize())
 
 #
-# deleteobjects
+# deleteobjects command
 #
 
 def delete_objects(inst, args):
@@ -638,6 +638,18 @@ def delete_objects(inst, args):
         if modified:
             block.serialize_static_objects(objList)
             inst.db.set_block(key, block.serialize())
+
+#
+# vacuum command
+#
+
+def vacuum(inst, args):
+    inst.log("warning", "Vacuum could require AS MUCH free disk space as\n"
+                        "the current size of the database!")
+
+    inst.begin(progBar=False)
+    inst.log("info", "Vacuuming...")
+    inst.db.vacuum()
 
 
 COMMAND_DEFS = {
@@ -754,7 +766,7 @@ COMMAND_DEFS = {
 
     "deleteobjects": {
         "func": delete_objects,
-        "help": "Delete static objects of a certain name and/or from a"
+        "help": "Delete static objects of a certain name and/or from a "
                 "certain area.",
         "args": {
             "searchobj":        False,
@@ -762,6 +774,13 @@ COMMAND_DEFS = {
             "area":             False,
             "invert":           False,
         }
+    },
+
+    "vacuum": {
+        "func": vacuum,
+        "help": "Vacuum the database. This reduces the size of the database, "
+                "but may take a long time.",
+        "args": {}
     },
 }
 
@@ -789,9 +808,13 @@ class MapEditInstance:
         self.print_warnings = True
         self.db = None
         self.sdb = None
+        self.has_begun = False
 
     def log(self, level, msg):
-        if level == "info":
+        if level == "":
+            # Print with no formatting.
+            print(msg)
+        elif level == "info":
             print("INFO: " +
                 "\n      ".join(msg.split("\n")))
         elif level == "warning":
@@ -803,28 +826,30 @@ class MapEditInstance:
                 "\n       ".join(msg.split("\n")))
             raise MapEditError()
 
-    def begin(self):
+    def begin(self, progBar=True):
         if self.print_warnings:
             self.log("warning", self.STANDARD_WARNING)
+
             if input("Proceed? (Y/n): ").lower() != "y":
+                self.log("", "Exiting.")
                 raise MapEditError()
 
-        self.progress.set_start()
+        self.has_begun = True
+        if progBar:
+            self.progress.set_start()
 
     def finalize(self):
-        committed = False
-
-        if self.db:
-            if self.db.is_modified():
-                committed = True
-                self.log("info", "Committing to database...")
-
-            self.db.close(commit=True)
-
         if self.sdb:
             self.sdb.close()
 
-        if committed:
+        if self.db:
+            if self.db.is_modified():
+                self.log("info", "Committing to database...")
+                self.db.commit()
+
+            self.db.close()
+
+        if self.has_begun:
             self.log("info", "Finished.")
 
     def update_progress(self, completed, total):
@@ -833,7 +858,8 @@ class MapEditInstance:
     def _verify_and_run(self, args):
         self.print_warnings = not args.no_warnings
 
-        if bool(args.p1) != bool(args.p2):
+        if (hasattr(args, "p1") and hasattr(args, "p2") and
+                bool(args.p1) != bool(args.p2)):
             self.log("fatal", "Missing --p1 or --p2 argument.")
 
         if args.has_not_none("p1") and args.has_not_none("p2"):
