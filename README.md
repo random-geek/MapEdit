@@ -1,3 +1,11 @@
+## As of May 2021, MapEdit is no longer maintained.
+
+MapEdit has been superseded by [MapEditr][1], a newer, more advanced world editor, written in Rust.
+MapEditr supports all existing MapEdit commands with only minor modifications needed.
+[Check out MapEditr!][1]
+
+[1]: https://github.com/random-geek/MapEditr
+
 # MapEdit
 
 Map database editor for Minetest
